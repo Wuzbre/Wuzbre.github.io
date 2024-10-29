@@ -20,6 +20,27 @@
   </entry>
   <entry>
     <title>这是一个测试样例文本</title>
+    <url>/test/</url>
+    <content><![CDATA[<p>没有啥内容哈</p>
+]]></content>
+      <categories>
+        <category>学习</category>
+        <category>Java</category>
+        <category>Python</category>
+        <category>工作</category>
+        <category>心得</category>
+        <category>日记</category>
+        <category>感悟</category>
+        <category>杂谈</category>
+        <category>日常</category>
+      </categories>
+      <tags>
+        <tag>测试</tag>
+        <tag>test</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>这是一个测试样例文本</title>
     <url>/%E8%BF%99%E6%98%AF%E4%B8%80%E4%B8%AA%E6%B5%8B%E8%AF%95%E6%A0%B7%E4%BE%8B%E6%96%87%E6%9C%AC/</url>
     <content><![CDATA[<p>Welcome to <span class="exturl" data-url="aHR0cHM6Ly9oZXhvLmlvLw==">Hexo<i class="fa fa-external-link-alt"></i></span>! This is your very first auto_excerpt:  enable: false  length: 150post. Check <span class="exturl" data-url="aHR0cHM6Ly9oZXhvLmlvL2RvY3Mv">documentation<i class="fa fa-external-link-alt"></i></span> for more info. If you get any pr<span id="more"></span>oblems when using Hexo, you can find the answer in <span class="exturl" data-url="aHR0cHM6Ly9oZXhvLmlvL2RvY3MvdHJvdWJsZXNob290aW5nLmh0bWw=">troubleshooting<i class="fa fa-external-link-alt"></i></span> or you can ask me on <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL2hleG9qcy9oZXhvL2lzc3Vlcw==">GitHub<i class="fa fa-external-link-alt"></i></span>.</p>
 ]]></content>
