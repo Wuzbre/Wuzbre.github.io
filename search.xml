@@ -47,4 +47,80 @@
         <tag>test</tag>
       </tags>
   </entry>
+  <entry>
+    <title>记一次Mysql问题</title>
+    <url>/%E8%AE%B0%E4%B8%80%E6%AC%A1Mysql%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<h1 id="记一次Mysql问题"><a href="#记一次Mysql问题" class="headerlink" title="记一次Mysql问题"></a>记一次Mysql问题</h1><p>今天突然的碰到了一次没碰到过的Mysql问题，找寻了一些解决办法，最终无可奈何，但是想要记录以下，也希望能有人有相同的经历并成功解决过，可以github联系我。哈哈哈哈<span id="more"></span></p>
+<h3 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h3><p>win11，pycharm2022，mysql8</p>
+<h3 id="问题起源"><a href="#问题起源" class="headerlink" title="问题起源"></a>问题起源</h3><p>本来在写一个Python的脚本，脚本是用来模拟生成一些数据的，在测试的过程中会不断的用pymysql去创建连接，当然啦，也会不断的断连接。</p>
+<p>代码就类似如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">connect_to_db</span>(<span class="params">self</span>):</span><br><span class="line">    <span class="keyword">return</span> pymysql.connect(</span><br><span class="line">        **<span class="variable language_">self</span>.db_config,</span><br><span class="line">        cursorclass=pymysql.cursors.DictCursor</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">query_from_db</span>(<span class="params">self, query: <span class="built_in">str</span></span>) -&gt; <span class="type">List</span>[<span class="type">Dict</span>[<span class="built_in">str</span>, <span class="type">Any</span>]]:</span><br><span class="line">    connection = <span class="variable language_">self</span>.connect_to_db()</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">with</span> connection.cursor(cursor=pymysql.cursors.Cursor) <span class="keyword">as</span> cursor:</span><br><span class="line">            cursor.execute(query)</span><br><span class="line">            <span class="keyword">return</span> [row[<span class="number">0</span>] <span class="keyword">for</span> row <span class="keyword">in</span> cursor.fetchall()]</span><br><span class="line">    <span class="keyword">except</span> pymysql.MySQLError <span class="keyword">as</span> e:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Error querying database: <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br><span class="line">        <span class="keyword">return</span> []</span><br><span class="line">    <span class="keyword">finally</span>:</span><br><span class="line">        connection.close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">save_to_mysql</span>(<span class="params">self, data: <span class="type">List</span>[<span class="type">Dict</span>[<span class="built_in">str</span>, <span class="type">Any</span>]], table_name: <span class="built_in">str</span></span>):</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> data:</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    connection = <span class="variable language_">self</span>.connect_to_db()</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="keyword">with</span> connection.cursor() <span class="keyword">as</span> cursor:</span><br><span class="line">            keys = data[<span class="number">0</span>].keys()</span><br><span class="line">            columns = <span class="string">&#x27;, &#x27;</span>.join(keys)</span><br><span class="line">            placeholders = <span class="string">&#x27;, &#x27;</span>.join([<span class="string">&#x27;%s&#x27;</span>] * <span class="built_in">len</span>(keys))</span><br><span class="line">            query = <span class="string">f&quot;INSERT INTO <span class="subst">&#123;table_name&#125;</span> (<span class="subst">&#123;columns&#125;</span>) VALUES (<span class="subst">&#123;placeholders&#125;</span>)&quot;</span></span><br><span class="line">            values = [<span class="built_in">tuple</span>(record[key] <span class="keyword">for</span> key <span class="keyword">in</span> keys) <span class="keyword">for</span> record <span class="keyword">in</span> data]</span><br><span class="line">            cursor.executemany(query, values)</span><br><span class="line">        connection.commit()</span><br><span class="line">    <span class="keyword">except</span> pymysql.MySQLError <span class="keyword">as</span> e:</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">f&quot;Error while saving data to <span class="subst">&#123;table_name&#125;</span>: <span class="subst">&#123;e&#125;</span>&quot;</span>)</span><br><span class="line">    <span class="keyword">finally</span>:</span><br><span class="line">        connection.close()</span><br></pre></td></tr></table></figure>
+
+<p>按照道理来讲的话，这份代码是不会有太大的问题，但是在运行多次后，数据库中的一个表发生了一个错误，查看错误日志发现如下日志</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">2024-11-12T11:48:31.444178Z 8 [ERROR] [MY-012611] [InnoDB] Operating system error number 2 in a file operation.</span><br><span class="line">2024-11-12T11:48:31.444684Z 8 [ERROR] [MY-012216] [InnoDB] Cannot open datafile for read-only: &#x27;.\erp\users.ibd&#x27; OS error: 71</span><br></pre></td></tr></table></figure>
+
+<p>发现报错信息是read-only，就思考了，是不是数据文件仅读了，然后就到存放idb的文件目录，后续查看了文件的读取执行权限，发现并不是读取执行权限的问题。</p>
+<p>然后就拿执行查询语句报出的错误信息到网络中搜索，报错信息如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">Tablespace is missing for table ‘db_rsk/XXX”</span><br></pre></td></tr></table></figure>
+
+<h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><ul>
+<li><p>网络办法</p>
+<p>  网络上说是磁盘空间满了，但是我这并没有满磁盘，所以这种症状不符合 Pass</p>
+<p>  还有说是ibd文件损坏了的，我怀疑可能是这种，然后就按照他的操作的，他具体的操作如下</p>
+<ol>
+<li>关闭mysql服务</li>
+<li>删除该表的ibd文件，然后重启服务</li>
+<li>做完收工</li>
+</ol>
+</li>
+</ul>
+<p>我就这么帅气的解决了</p>
+<hr>
+<p>怎么可能，当时自我为是，以为自己碰到的就是这种问题，然后就直接删除了，都没有把ibd文件做备份，真的蠢~~</p>
+<p>好了文件删除了，更轻松了，只需要找对病症，然后对症下药了，都不用考虑是什么原因导致的了。</p>
+<h3 id="重新诊治"><a href="#重新诊治" class="headerlink" title="重新诊治"></a>重新诊治</h3><p>问题如下：mysql的idb文件丢失，导致表无法访问怎么办？</p>
+<p>好了，又从网络以及gpt搜集了一些解决办法</p>
+<ol>
+<li>确认元数据信息是否还在</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">USE information_schema;</span><br><span class="line">SELECT TABLE_NAME, ENGINE</span><br><span class="line">FROM TABLES</span><br><span class="line">WHERE TABLE_SCHEMA = &#x27;&lt;your_database_name&gt;&#x27; AND TABLE_NAME = &#x27;users&#x27;;</span><br></pre></td></tr></table></figure>
+
+<p>查询发现元数据信息还存在</p>
+<ol>
+<li>尝试从idb文件恢复<ol>
+<li><p>停止mysql服务</p>
+</li>
+<li><p>然后从新创建一个结构相同表名相同的表，但是不同数库</p>
+</li>
+<li><p>将原来的ibd文件删除，替换成新创建表的ibd文件</p>
+</li>
+<li><p>确保新的表的权限是跟原来的ibd文件的权限相同</p>
+</li>
+<li><p>启动mysql服务</p>
+</li>
+<li><p>登录mysql服务并执行以下命令</p>
+ <figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">ALTER TABLE users DISCARD TABLESPACE;</span><br><span class="line">ALTER TABLE users IMPORT TABLESPACE;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>好的操作结束</p>
+</li>
+</ol>
+</li>
+</ol>
+<p>漂亮一通操作下来问题还是没有解决，nice~~</p>
+<p>后面一想，反正数据不多而且都是模拟的数据，测试脚本嘛，不浪费时间了，将问题记录下来，把其他表结构复制到另外一个数据库，重新开始。</p>
+<h3 id="感想"><a href="#感想" class="headerlink" title="感想"></a>感想</h3><p>写blog的时候想到了有个blog上说过，在5.6的时候或之前还是有办法解决的，但是在5.6之后的话只能放弃这个表名用其他的表明去替代，是不是这个样子的我没有尝试过，希望有经验的人能够为我解答一下。嘿嘿~~</p>
+<p>这里附一个链接，在我看来是有可能能够解决的办法</p>
+<p><span class="exturl" data-url="aHR0cHM6Ly9kb2NzLm9yYWNsZS5jb20vY2QvRTE3OTUyXzAxL215c3FsLTUuNy1lbi9pbm5vZGItdHJvdWJsZXNob290aW5nLWRhdGFkaWN0Lmh0bWw=">14.22.3 对 InnoDB 数据字典操作进行故障排除<i class="fa fa-external-link-alt"></i></span></p>
+<p>Thanks technology！</p>
+]]></content>
+      <categories>
+        <category>Mysql</category>
+        <category>Error</category>
+        <category>工作</category>
+      </categories>
+      <tags>
+        <tag>Mysql</tag>
+        <tag>项目</tag>
+      </tags>
+  </entry>
 </search>
